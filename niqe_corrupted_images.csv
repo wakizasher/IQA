@@ -1,0 +1,2 @@
+Image_Path,Error: 
+D:\iNaturalist\images\Bellis_perennis_52527.jpg,"Expected 3D or 4D (batch mode) tensor with possibly 0 batch size and other non-zero dimensions for input, but got: [1, 1, 0, 480]"
