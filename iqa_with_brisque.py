@@ -3,14 +3,14 @@ import os
 import time
 import pandas as pd
 from PIL import Image
-import numpy as np
-import brisque  # Using the brisque package
+import torch
+import pyiqa
 
 # Set up the BRISQUE metric
 tic = time.perf_counter()
 print("Loading BRISQUE model")
-# Initialize BRISQUE object
-brisque_obj = brisque.BRISQUE(url=False)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+brisque_metric = pyiqa.create_metric('brisque', device=device)
 print("Model loaded")
 
 # Create lists to store data
@@ -20,57 +20,63 @@ corrupted_images = []
 corrupted_errors = []
 
 # Define the folder with images
-image_folder = r"E:\iNaturalist\images"
+image_folder = r"D:\iNaturalist\test_3000"
 try:
     image_paths = [os.path.join(image_folder, img) for img in os.listdir(image_folder)
                    if img.lower().endswith(('.jpg', '.png', '.jpeg', '.JPG', '.PNG'))]
 except FileNotFoundError:
     print(f"Error: The directory {image_folder} does not exist.")
-    # Create an empty list if the directory doesn't exist (for testing purposes)
     image_paths = []
 
 # Loop through each image and calculate BRISQUE score
 for image_path in image_paths:
     print(f"\nChecking out: {image_path}")
     try:
-        # Load the image using PIL
-        img = Image.open(image_path).convert('RGB')  # Convert to RGB if it isn't
-        img.verify()  # Verify image integrity
-        img = Image.open(image_path)  # Reopen after verification
+        # Load and ensure proper format
+        img = Image.open(image_path)
 
-        # Convert to numpy array for brisque
-        img_np = np.array(img)
+        # Convert to RGB if not already
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # Verify image integrity
+        img.verify()
+        img = Image.open(image_path).convert('RGB')  # Reopen after verification
+
+        # Ensure minimum size (BRISQUE needs sufficient image content)
+        if img.size[0] < 32 or img.size[1] < 32:
+            raise ValueError(f"Image too small: {img.size}")
 
         # Calculate BRISQUE score
-        score = brisque_obj.score(img_np)
+        score = brisque_metric(img).item()
         print(f"BRISQUE score: {score:.4f} (Lower is better)")
 
         # Append to lists
         valid_images.append(image_path)
         valid_scores.append(score)
+
     except Exception as e:
-        # Catch errors related to corrupted images or processing failures
         print(f"Bad image detected: {image_path} (Error: {str(e)})")
-        print(traceback.format_exc())  # Print the full traceback for debugging
-        # Append to corrupted list
+        print(traceback.format_exc())
         corrupted_images.append(image_path)
         corrupted_errors.append(str(e))
 
-# Create a Pandas DataFrame
+# Create DataFrames and save results
 valid_data = {'Image_Path': valid_images, 'BRISQUE_score': valid_scores}
 valid_df = pd.DataFrame(valid_data)
 corrupted_data = {'Image_Path': corrupted_images, 'Error': corrupted_errors}
 corrupted_df = pd.DataFrame(corrupted_data)
 
-# Save the DataFrame to a CSV file
 valid_csv_file = '../valid_brisque_results.csv'
-valid_df.to_csv(valid_csv_file, index=False)  # index=False avoids adding an extra index column
+valid_df.to_csv(valid_csv_file, index=False)
 print(f"\nValid results saved to {valid_csv_file}!")
 
 corrupted_csv = "brisque_corrupted_images.csv"
 corrupted_df.to_csv(corrupted_csv, index=False)
 print(f"Corrupted images logged to {corrupted_csv}! Check it out!")
 
-# Output the time
 toc = time.perf_counter()
 print(f"IQA with BRISQUE finished in {toc - tic:0.4f} seconds")
+
+
+

@@ -23,9 +23,9 @@ corrupted_images = []
 corrupted_errors = []
 
 # Define the folder with images
-image_folder = r"D:\iNaturalist\images"
+image_folder = r"D:\iNaturalist\test_3000"
 image_paths = [os.path.join(image_folder, img) for img in os.listdir(image_folder)
-              if img.endswith(('.jpg', '.png','.JPG','.png','.PNG'))]
+              if img.lower().endswith(('.jpg','.jpeg','.png'))]
 
 # Loop through each image and calculate NIQE score
 for image_path in image_paths:
@@ -58,11 +58,11 @@ corrupted_data = {'Image_Path': corrupted_images, 'Error: ': corrupted_errors}
 corrupted_df = pd.DataFrame(corrupted_data)
 
 # Save the DataFrame to a CSV file
-valid_csv_file = 'valid_niqe_results.csv'
+valid_csv_file = 'valid_niqe_results3000.csv'
 valid_df.to_csv(valid_csv_file, index=False) # index=False avoids adding an extra index column
 print(f"\nValid results saved to {valid_csv_file}!")
 
-corrupted_csv = "niqe_corrupted_images.csv"
+corrupted_csv = "niqe_corrupted_images3000.csv"
 corrupted_df.to_csv(corrupted_csv, index=False)
 print(f"Corrupted images logged to {corrupted_csv}! Check it out!")
 
